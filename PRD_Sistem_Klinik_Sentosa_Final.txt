@@ -1,7 +1,7 @@
 Product Requirements Document (PRD)
 Sistem Informasi Klinik Sentosa
 
-Disusun oleh: Watak, Darell Jonathan & Legi, Sidney Alexander Junior & Lantang, Stevanus William & Bojoh, Armando
+Disusun oleh: Watak, Darell Jonathan & Legi, Sidney Alexander Junior & Lantang, Stevanus William & Bojoh, Armando 
 Kursus: System Analysis and Design – B
 Fakultas Ilmu Komputer, Universitas Klabat
 Tanggal: November 2025
