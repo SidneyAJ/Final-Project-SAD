@@ -1,0 +1,67 @@
+Klinik Sentosa – Final Prototype Rubric (MVP)
+Total	score:	100	points.	Backend	is	included	in	the	scoring.	Frontend-only	projects	still	
+receive	points	but	cannot	reach	perfect	score	on	the	backend	category.
+1. Workflow Completeness – 25 pts
+21–25 1–2	core	workflows	fully	implemented	
+end-to-end.	All	screens	connected	logically.
+16–20 Workflow	mostly	complete	with	minor	
+missing	steps.
+11–15 Partial	workflow;	cannot	finish	the	clinic	
+process.
+0–10 No	clear	workflow;	screens	disconnected.
+2. Functional Correctness & Navigation – 20 pts
+17–20 Nearly	all	buttons	and	links	work.	Smooth	
+navigation,	no	dead	ends	in	main	flows.
+13–16 Most	important	buttons	work;	minor	
+non-functional	interactions	exist.
+8–12 Several	dead	links;	user	experience	
+disrupted.
+0–7 Prototype	mostly	non-functional.
+3. UI/UX & Design Consistency – 20 pts
+17–20 Professional,	clean	clinic	UI.	Consistent	
+layout,	typography,	spacing,	icons,	color	
+scheme.
+13–16 Good	UI	with	minor	inconsistencies.	
+Understandable	and	usable.
+8–12 Plain	or	disorganized	UI;	readability	issues.
+0–7 UI	confusing,	messy,	or	inappropriate.
+4. Backend / Data Management – 20 pts
+17–20 Full	backend	+	persistent	CRUD	(Supabase,	
+PostgreSQL,	Firebase,	Express	API,	etc.).
+13–16 Backend/API	exists	but	partial	
+implementation	or	1-way	data	flow.
+8–12 No	backend	but	uses	structured	JSON/state	
+logic	(list	→	detail	→	update	in	memory).
+4–7 Only	visual	placeholder;	data	not	used	
+logically.
+0–3 No	meaningful	data	(placeholder	text	only).
+5. Frontend Data Logic – 10 pts
+9–10 Data	correctly	displayed	and	updated;	
+filtering/search/sorting/selection	works.
+6–8 Data	shown	but	limited	interactions;	basic	
+logic	only.
+3–5 Data	inconsistent	or	not	displayed	
+correctly.
+0–2 Minimal	or	no	dynamic	data.
+6. Traceability to SAD Artifacts – 5 pts
+5 Clear	mapping	between	SAD	outputs	and	
+prototype	(Use	Cases,	ERD,	DFD,	User	
+Stories).
+3–4 Partial	link	between	SAD	and	prototype.
+0–2 Prototype	does	not	reflect	SAD	analysis.
+7. Validation & User Feedback – 5 pts
+5 Includes	required	validations	and	clear	
+success/error	messages.
+3–4 Some	validation	but	inconsistent.
+1–2 Very	basic	validation	only.
+0 No	validation.
+Klinik Sentosa – Student Submission Checklist
+Before	submitting	your	prototype,	make	sure	ALL	items	below	are	completed.
+Checklist
+✔ Workflow:	Can	users	complete	at	least	one	full	clinic	process	from	start	to	finish?
+✔ Navigation:	All	main	buttons	and	pages	work	(no	dead	links	in	key	flows).
+✔ UI/UX:	Layout	consistent,	readable,	professional.
+✔ Backend:	At	least	JSON/structured	data	exists;	ideally	CRUD	+	persistent	storage.
+✔ Data	Logic:	Lists	→	detail	pages	→	forms	behave	logically.
+✔ SAD	Mapping:	Features	match	Use	Cases	/	DFD	/	ERD.
+✔ Validation:	Required	fields	checked,	error/success	messa

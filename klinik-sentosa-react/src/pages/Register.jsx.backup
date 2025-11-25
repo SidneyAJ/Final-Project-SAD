@@ -1,0 +1,726 @@
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { User, Mail, Phone, MapPin, Lock, Check, ArrowLeft, Sparkles } from 'lucide-react'
+import MedicalLogo from '../components/MedicalLogo'
+
+export default function Register() {
+    const navigate = useNavigate()
+    const [currentStep, setCurrentStep] = useState(1)
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [formData, setFormData] = useState({
+        namaLengkap: '',
+        nik: '',
+        tanggalLahir: '',
+        jenisKelamin: '',
+        email: '',
+        nomorHP: '',
+        alamat: '',
+        golonganDarah: '',
+        username: '',
+        password: '',
+        confirmPassword: ''
+    })
+
+    const handleChange = (e) => {
+        setFormData({
+            ...formData,
+            [e.target.name]: e.target.value
+        })
+    }
+
+    const handleSubmit = async (e) => {
+        e.preventDefault()
+
+        if (formData.password !== formData.confirmPassword) {
+            alert('❌ Password tidak cocok!\n\nPastikan kedua password yang Anda masukkan sama persis.')
+            return
+        }
+
+        if (formData.password.length < 8) {
+            alert('❌ Password terlalu pendek!\n\nPassword harus minimal 8 karakter. Gunakan kombinasi huruf dan angka untuk keamanan lebih baik.')
+            return
+        }
+
+        setIsSubmitting(true)
+
+        try {
+            const payload = {
+                email: formData.email,
+                password: formData.password,
+                role: 'patient', // Default role for public registration
+                name: formData.namaLengkap,
+                nik: formData.nik,
+                date_of_birth: formData.tanggalLahir,
+                gender: formData.jenisKelamin,
+                phone: formData.nomorHP,
+                address: formData.alamat,
+                blood_type: formData.golonganDarah
+            }
+
+            console.log('Sending registration data:', payload)
+
+            const response = await fetch('http://localhost:3000/api/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            })
+
+            const data = await response.json()
+            console.log('Server response:', data)
+
+            if (response.ok) {
+                alert('✅ Registrasi berhasil!\n\nAkun Anda telah dibuat. Silakan login untuk melanjutkan.')
+                navigate('/login')
+            } else {
+                // Provide specific error messages
+                let errorMessage = '❌ Registrasi gagal!\n\n'
+
+                if (data.error && data.error.includes('email') && data.error.includes('exists')) {
+                    errorMessage += 'Email sudah terdaftar. Silakan gunakan email lain atau login jika ini akun Anda.'
+                } else if (data.error && data.error.includes('nik') && data.error.includes('exists')) {
+                    errorMessage += 'NIK sudah terdaftar dalam sistem. Silakan hubungi administrator jika ini kesalahan.'
+                } else if (data.error && data.error.includes('phone') && data.error.includes('exists')) {
+                    errorMessage += 'Nomor HP sudah terdaftar. Gunakan nomor lain atau login jika ini akun Anda.'
+                } else {
+                    errorMessage += data.error || data.message || 'Terjadi kesalahan saat mendaftar. Periksa kembali data Anda dan coba lagi.'
+                }
+
+                alert(errorMessage)
+            }
+        } catch (error) {
+            console.error('Registration error:', error)
+            alert('❌ Gagal terhubung ke server!\n\nTidak dapat menghubungi server. Periksa koneksi internet Anda dan pastikan server berjalan, lalu coba lagi.')
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
+
+    const nextStep = () => {
+        if (currentStep < 3) setCurrentStep(currentStep + 1)
+    }
+
+    const prevStep = () => {
+        if (currentStep > 1) setCurrentStep(currentStep - 1)
+    }
+
+    return (
+        <div className="min-h-screen relative overflow-hidden">
+            {/* Animated Gradient Background */}
+            <div className="absolute inset-0 bg-gradient-to-br from-primary-600 via-purple-600 to-secondary-600">
+                {/* Animated Mesh Gradient */}
+                <div className="absolute inset-0">
+                    <div className="absolute top-0 left-0 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-float"></div>
+                    <div className="absolute top-1/2 right-0 w-72 h-72 bg-pink-500/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }}></div>
+                    <div className="absolute bottom-0 left-1/3 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }}></div>
+                    {/* Extra floating elements */}
+                    <div className="absolute top-20 right-1/4 w-32 h-32 bg-yellow-300/10 rounded-full blur-2xl animate-float" style={{ animationDelay: '1.5s' }}></div>
+                    <div className="absolute bottom-20 left-10 w-40 h-40 bg-green-300/10 rounded-full blur-2xl animate-float" style={{ animationDelay: '3.5s' }}></div>
+                </div>
+
+                {/* Grid Pattern Overlay */}
+                <div className="absolute inset-0 opacity-10">
+                    <div className="absolute inset-0" style={{
+                        backgroundImage: 'linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)',
+                        backgroundSize: '50px 50px'
+                    }}></div>
+                </div>
+
+                {/* Floating Medical Icons */}
+                <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                    <Sparkles className="absolute top-20 left-20 w-8 h-8 text-white/20 animate-pulse" />
+                    <Sparkles className="absolute top-40 right-32 w-6 h-6 text-white/20 animate-pulse" style={{ animationDelay: '1s' }} />
+                    <Sparkles className="absolute bottom-32 left-1/4 w-7 h-7 text-white/20 animate-pulse" style={{ animationDelay: '2s' }} />
+                    <Sparkles className="absolute bottom-20 right-20 w-5 h-5 text-white/20 animate-pulse" style={{ animationDelay: '3s' }} />
+                </div>
+            </div>
+
+            {/* Content */}
+            <div className="relative z-10 min-h-screen py-12 px-4">
+                <div className="max-w-4xl mx-auto">
+                    {/* Header */}
+                    <div className="text-center mb-8">
+                        <Link to="/" className="inline-block mb-6 transform hover:scale-105 transition-transform duration-300">
+                            <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 shadow-xl">
+                                <MedicalLogo size="lg" variant="light" />
+                            </div>
+                        </Link>
+                        <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 drop-shadow-lg">
+                            Pendaftaran Pasien Baru
+                        </h1>
+                        <p className="text-white/90 text-base font-medium drop-shadow-md">
+                            Isi data diri Anda untuk membuat akun
+                        </p>
+                    </div>
+
+                    {/* Progress Steps - With Animations */}
+                    <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 mb-8 shadow-2xl border border-white/20">
+                        <div className="flex items-center justify-center">
+                            {[
+                                { num: 1, label: 'Data Diri' },
+                                { num: 2, label: 'Kontak' },
+                                { num: 3, label: 'Akun' }
+                            ].map((step, index) => (
+                                <div key={step.num} className="flex items-center">
+                                    {/* Step Circle */}
+                                    <div className="flex flex-col items-center relative group">
+                                        {/* Pulse ring for active step */}
+                                        {currentStep === step.num && (
+                                            <>
+                                                <div className="absolute inset-0 w-16 h-16 -top-1 bg-white/30 rounded-full animate-ping"></div>
+                                                <div className="absolute inset-0 w-16 h-16 -top-1 bg-white/20 rounded-full animate-pulse"></div>
+                                            </>
+                                        )}
+
+                                        {/* Main Circle */}
+                                        <div className={`relative w-14 h-14 rounded-full flex items-center justify-center font-bold text-xl transition-all duration-500 ${currentStep >= step.num
+                                            ? 'bg-white text-primary-600 shadow-2xl scale-110'
+                                            : 'bg-white/20 text-white/60 group-hover:bg-white/30 group-hover:scale-105'
+                                            }`}>
+                                            {currentStep > step.num ? (
+                                                <Check className="w-7 h-7" strokeWidth={3} style={{ animation: 'scaleIn 0.5s ease-out' }} />
+                                            ) : (
+                                                step.num
+                                            )}
+                                        </div>
+
+                                        {/* Label */}
+                                        <span className={`mt-2 text-sm font-semibold transition-all duration-300 ${currentStep >= step.num ? 'text-white' : 'text-white/50'
+                                            }`}>
+                                            {step.label}
+                                        </span>
+                                    </div>
+
+                                    {/* Connector Line */}
+                                    {index < 2 && (
+                                        <div className="relative mx-4 w-20 md:w-32">
+                                            {/* Base Line */}
+                                            <div className="h-1 bg-white/20 rounded-full"></div>
+
+                                            {/* Progress Fill with Animation */}
+                                            <div className={`absolute top-0 left-0 h-1 rounded-full overflow-hidden transition-all duration-700 ${currentStep > step.num ? 'w-full' : 'w-0'
+                                                }`}>
+                                                <div className="h-full bg-gradient-to-r from-white via-blue-200 to-white rounded-full"></div>
+                                                {currentStep > step.num && (
+                                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent animate-shimmer"></div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Form Card */}
+                    <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8 md:p-12 border border-white/50">
+                        <form onSubmit={handleSubmit}>
+                            {/* Step 1: Data Diri */}
+                            {currentStep === 1 && (
+                                <div className="space-y-6 animate-in">
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-xl flex items-center justify-center">
+                                            <User className="w-6 h-6 text-white" />
+                                        </div>
+                                        <h2 className="text-3xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">
+                                            Data Diri Pasien
+                                        </h2>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">
+                                            Nama Lengkap <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="namaLengkap"
+                                            value={formData.namaLengkap}
+                                            onChange={handleChange}
+                                            className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition-all text-lg"
+                                            placeholder="Ahmad Budiman"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div className="grid md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">
+                                                NIK <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="nik"
+                                                value={formData.nik}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition-all text-lg"
+                                                placeholder="16 digit NIK"
+                                                maxLength="16"
+                                                required
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">
+                                                Tanggal Lahir <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="date"
+                                                name="tanggalLahir"
+                                                value={formData.tanggalLahir}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition-all text-lg"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-3">
+                                            Jenis Kelamin <span className="text-red-500">*</span>
+                                        </label>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <label className="cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="jenisKelamin"
+                                                    value="laki-laki"
+                                                    checked={formData.jenisKelamin === 'laki-laki'}
+                                                    onChange={handleChange}
+                                                    className="peer sr-only"
+                                                    required
+                                                />
+                                                <div className="h-16 border-3 border-gray-200 rounded-xl flex items-center justify-center font-bold text-lg transition-all peer-checked:border-primary-500 peer-checked:bg-gradient-to-r peer-checked:from-primary-50 peer-checked:to-secondary-50 peer-checked:text-primary-700 peer-checked:shadow-lg hover:border-gray-300">
+                                                    👨 Laki-laki
+                                                </div>
+                                            </label>
+                                            <label className="cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="jenisKelamin"
+                                                    value="perempuan"
+                                                    checked={formData.jenisKelamin === 'perempuan'}
+                                                    onChange={handleChange}
+                                                    className="peer sr-only"
+                                                />
+                                                <div className="h-16 border-3 border-gray-200 rounded-xl flex items-center justify-center font-bold text-lg transition-all peer-checked:border-primary-500 peer-checked:bg-gradient-to-r peer-checked:from-primary-50 peer-checked:to-secondary-50 peer-checked:text-primary-700 peer-checked:shadow-lg hover:border-gray-300">
+                                                    👩 Perempuan
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Step 2: Kontak */}
+                            {currentStep === 2 && (
+                                <div className="space-y-6 animate-in">
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-xl flex items-center justify-center">
+                                            <Mail className="w-6 h-6 text-white" />
+                                        </div>
+                                        <h2 className="text-3xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">
+                                            Informasi Kontak
+                                        </h2>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">
+                                            Email <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="email"
+                                            name="email"
+                                            value={formData.email}
+                                            onChange={handleChange}
+                                            className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition-all text-lg"
+                                            placeholder="nama@email.com"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">
+                                            Nomor HP <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="tel"
+                                            name="nomorHP"
+                                            value={formData.nomorHP}
+                                            onChange={handleChange}
+                                            className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition-all text-lg"
+                                            placeholder="08123456789"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">
+                                            Alamat Lengkap <span className="text-red-500">*</span>
+                                        </label>
+                                        <textarea
+                                            name="alamat"
+                                            value={formData.alamat}
+                                            onChange={handleChange}
+                                            className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition-all text-lg resize-none"
+                                            rows="3"
+                                            placeholder="Jl. Nama Jalan No. XX, RT/RW, Kelurahan, Kecamatan, Kota"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">
+                                            Golongan Darah
+                                        </label>
+                                        <select
+                                            name="golonganDarah"
+                                            value={formData.golonganDarah}
+                                            onChange={handleChange}
+                                            className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition-all text-lg"
+                                        >
+                                            <option value="">Pilih...</option>
+                                            <option value="A">A</option>
+                                            <option value="B">B</option>
+                                            <option value="AB">AB</option>
+                                            <option value="O">O</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Step 3: Akun */}
+                            {currentStep === 3 && (
+                                <div className="space-y-6 animate-in">
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-xl flex items-center justify-center">
+                                            <Lock className="w-6 h-6 text-white" />
+                                        </div>
+                                        <h2 className="text-3xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">
+                                            Buat Akun
+                                        </h2>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">
+                                            Username <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="username"
+                                            value={formData.username}
+                                            onChange={handleChange}
+                                            className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition-all text-lg"
+                                            placeholder="username"
+                                            minLength="4"
+                                            required
+                                        />
+                                        <p className="text-sm text-gray-500 mt-2">Minimal 4 karakter</p>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">
+                                            Kata Sandi <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="password"
+                                            name="password"
+                                            value={formData.password}
+                                            onChange={handleChange}
+                                            className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition-all text-lg"
+                                            placeholder="••••••••"
+                                            minLength="8"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">
+                                            Konfirmasi Kata Sandi <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="password"
+                                            name="confirmPassword"
+                                            value={formData.confirmPassword}
+                                            onChange={handleChange}
+                                            className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition-all text-lg"
+                                            placeholder="••••••••"
+                                            required
+                                        />
+                                        {formData.password && formData.confirmPassword && (
+                                            <p className={`text-sm mt-2 font-semibold ${formData.password === formData.confirmPassword ? 'text-green-600' : 'text-red-600'}`}>
+                                                {formData.password === formData.confirmPassword ? '✓ Password cocok' : '✗ Password tidak cocok'}
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    <label className="flex items-start gap-3 cursor-pointer p-4 border-2 border-gray-200 rounded-xl hover:border-primary-300 transition-all">
+                                        <input type="checkbox" className="mt-1 w-5 h-5 text-primary-600 rounded" required />
+                                        <span className="text-sm text-gray-700 leading-relaxed">
+                                            Saya setuju dengan{' '}
+                                            <a href="#" className="text-primary-600 hover:underline font-semibold">Syarat & Ketentuan</a>
+                                            {' '}dan{' '}
+                                            <a href="#" className="text-primary-600 hover:underline font-semibold">Kebijakan Privasi</a>
+                                        </span>
+                                    </label>
+                                </div>
+                            )}
+
+                            {/* Navigation Buttons */}
+                            <div className="flex gap-4 mt-10">
+                                {currentStep > 1 && (
+                                    <button
+                                        type="button"
+                                        onClick={prevStep}
+                                        className="flex-1 py-4 bg-gray-100 text-gray-700 rounded-xl font-bold text-lg hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <ArrowLeft className="w-5 h-5" />
+                                        Kembali
+                                    </button>
+                                )}
+                                {currentStep < 3 ? (
+                                    <button
+                                        type="button"
+                                        onClick={nextStep}
+                                        className="flex-1 py-4 bg-gradient-to-r from-primary-600 to-secondary-600 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all"
+                                    >
+                                        Selanjutnya →
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="submit"
+                                        disabled={isSubmitting}
+                                        className="flex-1 py-4 bg-gradient-to-r from-primary-600 to-secondary-600 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
+                                    >
+                                        {isSubmitting ? (
+                                            <>
+                                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                                Mendaftar...
+                                            </>
+                                        ) : (
+                                            <>
+                                                Daftar Sekarang ✨
+                                            </>
+                                        )}
+                                    </button>
+                                )}
+                            </div>
+                        </form>
+
+                        {/* Login Link */}
+                        <div className="mt-8 text-center">
+                            <span className="text-gray-600">Sudah punya akun? </span>
+                            <Link to="/login" className="text-primary-600 hover:text-primary-700 font-bold">
+                                Login di sini
+                            </Link>
+                        </div>
+                    </div>
+                    Informasi Kontak
+                </h2>
+            </div>
+
+            <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Email <span className="text-red-500">*</span>
+                </label>
+                <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition-all text-lg"
+                    placeholder="nama@email.com"
+                    required
+                />
+            </div>
+
+            <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Nomor HP <span className="text-red-500">*</span>
+                </label>
+                <input
+                    type="tel"
+                    name="nomorHP"
+                    value={formData.nomorHP}
+                    onChange={handleChange}
+                    className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition-all text-lg"
+                    placeholder="08123456789"
+                    required
+                />
+            </div>
+
+            <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Alamat Lengkap <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                    name="alamat"
+                    value={formData.alamat}
+                    onChange={handleChange}
+                    className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition-all text-lg resize-none"
+                    rows="3"
+                    placeholder="Jl. Nama Jalan No. XX, RT/RW, Kelurahan, Kecamatan, Kota"
+                    required
+                />
+            </div>
+
+            <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Golongan Darah
+                </label>
+                <select
+                    name="golonganDarah"
+                    value={formData.golonganDarah}
+                    onChange={handleChange}
+                    className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition-all text-lg"
+                >
+                    <option value="">Pilih...</option>
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="AB">AB</option>
+                    <option value="O">O</option>
+                </select>
+            </div>
+        </div>
+    )
+}
+
+{/* Step 3: Akun */ }
+{
+    currentStep === 3 && (
+        <div className="space-y-6 animate-in">
+            <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-xl flex items-center justify-center">
+                    <Lock className="w-6 h-6 text-white" />
+                </div>
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">
+                    Buat Akun
+                </h2>
+            </div>
+
+            <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Username <span className="text-red-500">*</span>
+                </label>
+                <input
+                    type="text"
+                    name="username"
+                    value={formData.username}
+                    onChange={handleChange}
+                    className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition-all text-lg"
+                    placeholder="username"
+                    minLength="4"
+                    required
+                />
+                <p className="text-sm text-gray-500 mt-2">Minimal 4 karakter</p>
+            </div>
+
+            <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Kata Sandi <span className="text-red-500">*</span>
+                </label>
+                <input
+                    type="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition-all text-lg"
+                    placeholder="••••••••"
+                    minLength="8"
+                    required
+                />
+            </div>
+
+            <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Konfirmasi Kata Sandi <span className="text-red-500">*</span>
+                </label>
+                <input
+                    type="password"
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition-all text-lg"
+                    placeholder="••••••••"
+                    required
+                />
+                {formData.password && formData.confirmPassword && (
+                    <p className={`text-sm mt-2 font-semibold ${formData.password === formData.confirmPassword ? 'text-green-600' : 'text-red-600'}`}>
+                        {formData.password === formData.confirmPassword ? '✓ Password cocok' : '✗ Password tidak cocok'}
+                    </p>
+                )}
+            </div>
+
+            <label className="flex items-start gap-3 cursor-pointer p-4 border-2 border-gray-200 rounded-xl hover:border-primary-300 transition-all">
+                <input type="checkbox" className="mt-1 w-5 h-5 text-primary-600 rounded" required />
+                <span className="text-sm text-gray-700 leading-relaxed">
+                    Saya setuju dengan{' '}
+                    <a href="#" className="text-primary-600 hover:underline font-semibold">Syarat & Ketentuan</a>
+                    {' '}dan{' '}
+                    <a href="#" className="text-primary-600 hover:underline font-semibold">Kebijakan Privasi</a>
+                </span>
+            </label>
+        </div>
+    )
+}
+
+{/* Navigation Buttons */ }
+<div className="flex gap-4 mt-10">
+    {currentStep > 1 && (
+        <button
+            type="button"
+            onClick={prevStep}
+            className="flex-1 py-4 bg-gray-100 text-gray-700 rounded-xl font-bold text-lg hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
+        >
+            <ArrowLeft className="w-5 h-5" />
+            Kembali
+        </button>
+    )}
+    {currentStep < 3 ? (
+        <button
+            type="button"
+            onClick={nextStep}
+            className="flex-1 py-4 bg-gradient-to-r from-primary-600 to-secondary-600 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all"
+        >
+            Selanjutnya →
+        </button>
+    ) : (
+        <button
+            type="submit"
+            disabled={isSubmitting}
+            className="flex-1 py-4 bg-gradient-to-r from-primary-600 to-secondary-600 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
+        >
+            {isSubmitting ? (
+                <>
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    Mendaftar...
+                </>
+            ) : (
+                <>
+                    Daftar Sekarang ✨
+                </>
+            )}
+        </button>
+    )}
+</div>
+                        </form >
+
+    {/* Login Link */ }
+    < div className = "mt-8 text-center" >
+                            <span className="text-gray-600">Sudah punya akun? </span>
+                            <Link to="/login" className="text-primary-600 hover:text-primary-700 font-bold">
+                                Login di sini
+                            </Link>
+                        </div >
+                    </div >
+
+    {/* Back to Home */ }
+    < Link to = "/" className = "flex items-center justify-center gap-2 mt-6 text-white/90 hover:text-white font-medium" >
+        <ArrowLeft className="w-4 h-4" />
+                        Kembali ke Beranda
+                    </Link >
+                </div >
+            </div >
+        </div >
+    )
+}

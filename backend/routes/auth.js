@@ -1,0 +1,354 @@
+const express = require('express');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const db = require('../database');
+const { authenticateToken, SECRET_KEY } = require('../middleware/auth');
+const logAudit = require('../utils/auditLogger');
+
+const router = express.Router();
+
+//Register
+router.post('/register', async (req, res) => {
+    const { email, password, role, name, nik, date_of_birth, gender, phone, address, blood_type, username } = req.body;
+
+    if (!email || !password || !role || !name || !username) {
+        return res.status(400).json({ error: 'Semua field wajib di isi' });
+    }
+
+    try {
+        // Check if user exists (email or username)
+        db.get("SELECT id FROM users WHERE email = ? OR username = ?", [email, username], async (err, row) => {
+            if (err) {
+                const fs = require('fs');
+                const path = require('path');
+                fs.appendFileSync(path.join(__dirname, '../error.log'), `${new Date().toISOString()} - Error checking user: ${err.message}\n`);
+                return res.status(500).json({ error: err.message });
+            }
+            if (row) return res.status(400).json({ error: 'Email atau Username sudah terdaftar' });
+
+            // Hash password
+            const hashedPassword = await bcrypt.hash(password, 10);
+
+            // Insert user
+            db.run("INSERT INTO users (email, username, password_hash, role, name) VALUES (?, ?, ?, ?, ?)",
+                [email, username, hashedPassword, role, name],
+                function (err) {
+                    if (err) {
+                        const fs = require('fs');
+                        const path = require('path');
+                        fs.appendFileSync(path.join(__dirname, '../error.log'), `${new Date().toISOString()} - Error creating user: ${err.message}\n`);
+                        return res.status(500).json({ error: err.message });
+                    }
+
+                    // Create related profile based on role
+                    const userId = this.lastID;
+
+                    if (role === 'patient') {
+                        // Insert patient with complete data including NIK
+                        db.run(
+                            `INSERT INTO patients (user_id, full_name, nik, date_of_birth, gender, phone, address, blood_type) 
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                            [userId, name, nik, date_of_birth, gender, phone, address, blood_type],
+                            (err) => {
+                                if (err) {
+                                    console.error('Error creating patient:', err);
+                                    const fs = require('fs');
+                                    const logPath = 'C:/Users/user/.gemini/antigravity/brain/5141e663-b83b-4f40-99c7-9bad370eafbc/backend_error.log';
+                                    fs.appendFileSync(logPath, `${new Date().toISOString()} - Error creating patient: ${err.message}\n${JSON.stringify(err)}\n`);
+                                    return res.status(500).json({ error: 'Gagal membuat profil pasien' });
+                                }
+                            }
+                        );
+                    } else if (role === 'doctor') {
+                        db.run("INSERT INTO doctors (user_id, full_name) VALUES (?, ?)", [userId, name]);
+                    }
+
+                    // Audit Log
+                    logAudit({ user: { id: userId }, ip: req.ip }, 'REGISTER', { role, email, username });
+
+                    res.status(201).json({ message: 'Pendaftaran berhasil! Silakan login dengan akun Anda.' });
+                }
+            );
+        });
+    } catch (error) {
+        const fs = require('fs');
+        const path = require('path');
+        fs.appendFileSync(path.join(__dirname, '../error.log'), `${new Date().toISOString()} - Catch Error: ${error.message}\n`);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Login - SUPPORT USERNAME OR EMAIL
+router.post('/login', (req, res) => {
+    const { email, password } = req.body; // 'email' field can contain email OR username
+
+    if (!email || !password) {
+        return res.status(400).json({ error: 'Email/Username dan password wajib diisi' });
+    }
+
+    // Setup file logger for debugging
+    const fs = require('fs');
+    const path = require('path');
+    const logPath = path.join(__dirname, '../login_debug.log');
+    const log = (msg) => {
+        try {
+            fs.appendFileSync(logPath, `${new Date().toISOString()} - ${msg}\n`);
+        } catch (e) {
+            console.error('Logging error:', e);
+        }
+    };
+
+    log(`Attempting login with: ${email}`);
+
+    // Check if input is email or username
+    const isEmail = email.includes('@');
+    log(`Detected type: ${isEmail ? 'EMAIL' : 'USERNAME'}`);
+
+    const query = isEmail
+        ? "SELECT * FROM users WHERE email = ?"
+        : "SELECT * FROM users WHERE username = ?";
+
+    db.get(query, [email], async (err, user) => {
+        if (err) {
+            log(`Database error: ${err.message}`);
+            return res.status(500).json({ error: err.message });
+        }
+
+        if (!user) {
+            log('User NOT found in database');
+            return res.status(401).json({ error: 'Email/Username atau password salah' });
+        }
+
+        log(`User found: ID=${user.id}, Username=${user.username}, Email=${user.email}, Role=${user.role}`);
+
+        const validPassword = await bcrypt.compare(password, user.password_hash);
+        log(`Password match result: ${validPassword}`);
+
+        if (!validPassword) {
+            log('Password incorrect');
+            return res.status(401).json({ error: 'Email/Username atau password salah' });
+        }
+
+        // Generate Token
+        const token = jwt.sign(
+            { id: user.id, email: user.email, role: user.role, name: user.name, username: user.username },
+            SECRET_KEY,
+            { expiresIn: '24h' }
+        );
+
+        // Audit Log
+        logAudit({ user: { id: user.id }, ip: req.ip }, 'LOGIN', { identifier: email });
+
+        log('Login successful, sending response');
+
+        res.json({
+            message: 'Login berhasil',
+            token,
+            user: {
+                id: user.id,
+                email: user.email,
+                username: user.username,
+                role: user.role,
+                name: user.name
+            }
+        });
+    });
+});
+
+
+// Get Current User
+router.get('/me', (req, res) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) return res.status(401).json({ error: 'No token provided' });
+
+    jwt.verify(token, SECRET_KEY, (err, user) => {
+        if (err) return res.status(403).json({ error: 'Invalid token' });
+        res.json({ user });
+    });
+});
+
+// PUT /profile - Update user profile
+router.put('/profile', authenticateToken, (req, res) => {
+    const { name, email } = req.body;
+    const userId = req.user.id;
+
+    if (!name || !email) {
+        return res.status(400).json({ error: 'Name and email are required' });
+    }
+
+    const query = "UPDATE users SET name = ?, email = ? WHERE id = ?";
+    db.run(query, [name, email, userId], function (err) {
+        if (err) {
+            console.error('Error updating profile:', err);
+            return res.status(500).json({ error: 'Database error' });
+        }
+        res.json({ message: 'Profile updated successfully', user: { ...req.user, name, email } });
+    });
+});
+
+// PUT /password - Change password
+router.put('/password', authenticateToken, async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user.id;
+
+    if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: 'Current and new password are required' });
+    }
+
+    try {
+        // Get current password hash
+        const user = await new Promise((resolve, reject) => {
+            db.get("SELECT password_hash FROM users WHERE id = ?", [userId], (err, row) => {
+                if (err) reject(err);
+                else resolve(row);
+            });
+        });
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Verify current password
+        const validPassword = await bcrypt.compare(currentPassword, user.password_hash);
+        if (!validPassword) {
+            return res.status(400).json({ error: 'Password saat ini salah' });
+        }
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // Update password
+        await new Promise((resolve, reject) => {
+            db.run("UPDATE users SET password_hash = ? WHERE id = ?", [hashedPassword, userId], (err) => {
+                if (err) reject(err);
+                else resolve();
+            });
+        });
+
+        res.json({ message: 'Password changed successfully' });
+    } catch (error) {
+        console.error('Error changing password:', error);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// POST /forgot-password - Request password reset
+router.post('/forgot-password', async (req, res) => {
+    const { identifier } = req.body; // Can be email or username
+
+    if (!identifier) {
+        return res.status(400).json({ error: 'Email atau username wajib diisi' });
+    }
+
+    try {
+        // Check if input is email or username
+        const isEmail = identifier.includes('@');
+        const query = isEmail
+            ? "SELECT * FROM users WHERE email = ?"
+            : "SELECT * FROM users WHERE name = ?";
+
+        db.get(query, [identifier], async (err, user) => {
+            if (err) {
+                return res.status(500).json({ error: 'Database error' });
+            }
+
+            if (!user) {
+                // For security, don't reveal if user exists or not
+                return res.json({ message: 'Jika akun ditemukan, instruksi reset password telah dikirim' });
+            }
+
+            // Generate a simple 6-digit reset code
+            const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+            const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes from now
+
+            // Store reset code in database
+            db.run(
+                "UPDATE users SET reset_code = ?, reset_code_expires = ? WHERE id = ?",
+                [resetCode, expiresAt.toISOString(), user.id],
+                (err) => {
+                    if (err) {
+                        console.error('Error storing reset code:', err);
+                        return res.status(500).json({ error: 'Database error' });
+                    }
+
+                    // In a real app, send email here
+                    // For development, return the code (REMOVE THIS IN PRODUCTION!)
+                    res.json({
+                        message: 'Kode reset password telah dibuat',
+                        // Development only - remove in production:
+                        resetCode: resetCode,
+                        email: user.email
+                    });
+                }
+            );
+        });
+    } catch (error) {
+        console.error('Error in forgot password:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// POST /reset-password - Reset password with code
+router.post('/reset-password', async (req, res) => {
+    const { email, resetCode, newPassword } = req.body;
+
+    if (!email || !resetCode || !newPassword) {
+        return res.status(400).json({ error: 'Semua field wajib diisi' });
+    }
+
+    if (newPassword.length < 6) {
+        return res.status(400).json({ error: 'Password minimal 6 karakter' });
+    }
+
+    try {
+        // Find user with matching email and reset code
+        db.get(
+            "SELECT * FROM users WHERE email = ? AND reset_code = ?",
+            [email, resetCode],
+            async (err, user) => {
+                if (err) {
+                    return res.status(500).json({ error: 'Database error' });
+                }
+
+                if (!user) {
+                    return res.status(400).json({ error: 'Kode reset tidak valid atau sudah kadaluarsa' });
+                }
+
+                // Check if code has expired
+                const now = new Date();
+                const expiresAt = new Date(user.reset_code_expires);
+
+                if (now > expiresAt) {
+                    return res.status(400).json({ error: 'Kode reset sudah kadaluarsa' });
+                }
+
+                // Hash new password
+                const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+                // Update password and clear reset code
+                db.run(
+                    "UPDATE users SET password_hash = ?, reset_code = NULL, reset_code_expires = NULL WHERE id = ?",
+                    [hashedPassword, user.id],
+                    (err) => {
+                        if (err) {
+                            console.error('Error resetting password:', err);
+                            return res.status(500).json({ error: 'Database error' });
+                        }
+
+                        // Audit log
+                        logAudit({ user: { id: user.id }, ip: req.ip }, 'PASSWORD_RESET', { email: user.email });
+
+                        res.json({ message: 'Password berhasil direset. Silakan login dengan password baru Anda.' });
+                    }
+                );
+            }
+        );
+    } catch (error) {
+        console.error('Error resetting password:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+module.exports = router;
